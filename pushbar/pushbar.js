@@ -139,5 +139,3 @@ class Pushbar {
     }
   }
 }
-
-new Pushbar();
