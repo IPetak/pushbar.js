@@ -1,6 +1,7 @@
 # Pushbar.js
 Pushbar.js is a tiny javascript plugin for creating sliding drawers in web apps
 It is fully customizable and dependency free.You can use it as sidebar menus or option drawers.
+You can also nest pushbars, even different type ones.
 
 
 [Demo](https://oncebot.github.io/pushbar.js/)
