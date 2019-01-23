@@ -21,7 +21,7 @@ It is fully customizable and dependency free.You can use it as sidebar menus or 
         overlay:true,
       });
 </script>
-	
+
 ```
 
 ### Example HTML
@@ -29,13 +29,13 @@ It is fully customizable and dependency free.You can use it as sidebar menus or 
   <div data-pushbar-id="mypushbar1" class="pushbar from_left">
       Push bar content 1
 
-      <button data-pushbar-close>Close</button>
+      <button data-pushbar-close="mypushbar1">Close</button>
   </div>
 
   <div data-pushbar-id="mypushbar2" class="pushbar from_bottom">
       Push bar content 2
 
-      <button data-pushbar-close>Close</button>
+      <button data-pushbar-close="mypushbar2">Close</button>
   </div>
 
   <div class="pushbar_main_content">
@@ -67,13 +67,13 @@ Open and close pushbar with api
       });
 
   //open a pushbar
-  pushbar.open('mypushbar1');	
+  pushbar.open('mypushbar1');
   //close all pushbars
-  pushbar.close();	
+  pushbar.close();
 </script>
 ```
 
-### Emitted events 
+### Emitted events
 * 'pushbar_opening': when a pushbar is opening, that pushbar element will emit this event.
 * 'pushbar_closing': when a pushbar is closing, that pushbar element will emit this event.
 
