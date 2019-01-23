@@ -1,7 +1,8 @@
 class Pushbar {
-  constructor(config = { overlay: true, blur: false }) {
-    this.activeBar = null;
-    this.overlay = false;
+  constructor(config = { overlay: false, blur: false }) {
+    this.activeBar    = '';
+    this.previousBars = [];
+    this.root         = document.querySelector('html');
 
     if (config.overlay) {
       this.overlay = document.createElement('div');
@@ -19,16 +20,6 @@ class Pushbar {
     this.bindEvents();
   }
 
-  get opened() {
-    const { activeBar } = this;
-    return Boolean(activeBar instanceof HTMLElement && activeBar.classList.contains('opened'));
-  }
-  
-  get activeBarId() {
-    const { activeBar } = this;
-    return activeBar instanceof HTMLElement && activeBar.getAttribute('data-pushbar-id');
-  }
-
   static dispatchOpen(pushbar) {
     const event = new CustomEvent('pushbar_opening', { bubbles: true, detail: { pushbar } });
     pushbar.dispatchEvent(event);
@@ -39,13 +30,14 @@ class Pushbar {
     pushbar.dispatchEvent(event);
   }
 
-  static findElementById(pushbarId) {
-    return document.querySelector(`[data-pushbar-id="${pushbarId}"]`);
+  static findPushbarById(pushbarId) {
+    return document.querySelector('[data-pushbar-id='+pushbarId+']');
   }
 
   handleOpenEvent(e) {
     e.preventDefault();
-    const pushbarId = e.currentTarget.getAttribute('data-pushbar-target');
+    var pushbarId = e.currentTarget.getAttribute('data-pushbar-target');
+
     if (pushbarId) {
       this.open(pushbarId);
     }
@@ -53,65 +45,99 @@ class Pushbar {
 
   handleCloseEvent(e) {
     e.preventDefault();
-    this.close();
+    if ('click' === e.type) {
+      var pushbarId = e.currentTarget.getAttribute('data-pushbar-target') || e.currentTarget.getAttribute('data-pushbar-close') || this.activeBar;
+      this.close(pushbarId);
+    } else if ('keyup' === e.type) {
+      this.close(this.activeBar);
+    }
   }
 
   handleKeyEvent(e) {
-    if (this.opened && e.keyCode === 27) {
-      this.close();
+    if (this.root.classList.contains('pushbar_locked') && e.keyCode === 27) {
+      this.handleCloseEvent(e);
     }
   }
 
   bindEvents() {
-    const triggers = document.querySelectorAll('[data-pushbar-target]');
-    const closers = document.querySelectorAll('[data-pushbar-close]');
+    var _this         = this,
+        trigger_types = [ 'target', 'close' ],
+        triggers      = '';
 
-    triggers.forEach(trigger => trigger.addEventListener('click', e => this.handleOpenEvent(e), false));
-    closers.forEach(closer => closer.addEventListener('click', e => this.handleCloseEvent(e), false));
+    trigger_types.forEach(function (type) {
+      triggers = Array.from(document.querySelectorAll('[data-pushbar-'+type+']'));
+      triggers.forEach(function (trigger) {
+        return trigger.addEventListener('click', function (e) {
+          var pushbar = Pushbar.findPushbarById(e.currentTarget.getAttribute('data-pushbar-'+type));
+
+          if (pushbar) {
+            if (pushbar.classList.contains('opened')) {
+              this.classList.remove('open');
+              return _this.handleCloseEvent(e);
+            } else {
+              this.classList.add('open');
+              return _this.handleOpenEvent(e);
+            }
+          } else {
+            return e.preventDefault();
+          }
+        }, false);
+      });
+    });
 
     if (this.overlay) {
       this.overlay.addEventListener('click', e => this.handleCloseEvent(e), false);
     }
+
+    // Handle closing stacked pushbars with escape key.
     document.addEventListener('keyup', e => this.handleKeyEvent(e));
   }
 
   open(pushbarId) {
-    // Current bar is already opened
-    if (String(pushbarId) === this.activeBarId && this.opened) {
-      return;
-    }
-    
     // Get new pushbar target
-    const pushbar = Pushbar.findElementById(pushbarId);
+    var pushbar = Pushbar.findPushbarById(pushbarId);
 
     if (!pushbar) return;
-    
-    // Close active bar (if exists)
-    if (this.opened) {
-      this.close();
-    }
-    
-    Pushbar.dispatchOpen(pushbar);
-    pushbar.classList.add('opened');
 
-    const Root = document.querySelector('html');
-    Root.classList.add('pushbar_locked');
-    Root.setAttribute('pushbar', pushbarId);
-    this.activeBar = pushbar;
+    pushbar.classList.add('opened');
+    pushbar.classList.add('is-open');
+    Pushbar.dispatchOpen(pushbar);
+
+    // Set pushbar lock on html element for easy access.
+    this.root.classList.add('pushbar_locked');
+    // Save currently open pushbar to pushbar trail arrray.
+    var previousBar = this.root.getAttribute('pushbar', pushbarId);
+    if (previousBar) {
+      this.previousBars.push(previousBar);
+    }
+    // Set currently open pushbar as active one.
+    this.root.setAttribute('pushbar', pushbarId);
+
+    this.activeBar = pushbarId;
   }
 
-  close() {
-    const { activeBar } = this;
-    if (!activeBar) return;
-    
-    Pushbar.dispatchClose(activeBar);
-    activeBar.classList.remove('opened');
+  close(pushbarId) {
+    // Get new pushbar target
+    var pushbar = Pushbar.findPushbarById(pushbarId);
 
-    const Root = document.querySelector('html');
-    Root.classList.remove('pushbar_locked');
-    Root.removeAttribute('pushbar');
-    
-    this.activeBar = null;
+    if (!pushbar) return;
+
+    Pushbar.dispatchClose(pushbar);
+
+    pushbar.classList.remove('opened');
+
+    // Set previusly opened pushbar as currently active one.
+    if (this.previousBars) {
+      this.activeBar = this.previousBars.pop();
+      this.root.setAttribute('pushbar', this.activeBar);
+    }
+
+    // If all pushbars are closed remove pushbar lock and active bar data.
+    if (! this.activeBar) {
+      this.root.classList.remove('pushbar_locked');
+      this.root.removeAttribute('pushbar');
+    }
   }
 }
 
+new Pushbar();
