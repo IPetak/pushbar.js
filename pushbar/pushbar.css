@@ -53,6 +53,12 @@ html.pushbar_locked .pushbar_overlay{
 	transform: translateZ(0) translateX(-100%);
 }
 
+.pushbar.from_left .from_top,
+.pushbar.from_left .from_bottom{
+  height: 100%;
+  overflow:hidden;
+}
+
 .pushbar.from_right{
 	top: 0;
 	right: 0;
